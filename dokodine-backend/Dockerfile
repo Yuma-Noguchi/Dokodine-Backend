@@ -12,4 +12,4 @@ COPY requirements.txt /code/
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 # Run app.py when the container launches
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--reload"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
