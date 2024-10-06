@@ -1,0 +1,49 @@
+name: CI/CD for FastAPI and Next.js with Docker Compose
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Docker Compose
+      run: |
+        sudo apt-get update
+        sudo apt-get install docker-compose
+
+    - name: Build and run Docker Compose
+      run: docker-compose -f docker-compose.yml up --build -d
+
+    - name: Wait for Backend to Start
+      run: |
+        RETRIES=5
+        until curl --fail http://localhost:8000/ || [ $RETRIES -eq 0 ]; do
+          echo "Waiting for backend to be ready..."
+          sleep 5
+          RETRIES=$((RETRIES - 1))
+        done
+
+    - name: Wait for Frontend to Start
+      run: |
+        RETRIES=5
+        until curl --fail http://localhost:3000/ || [ $RETRIES -eq 0 ]; do
+          echo "Waiting for frontend to be ready..."
+          sleep 5
+          RETRIES=$((RETRIES - 1))
+        done
+
+    - name: Test Backend API
+      run: curl http://localhost:8000/
+
+    - name: Test Frontend
+      run: curl http://localhost:3000/
+
+    - name: Shut down Docker Compose
+      run: docker-compose -f docker-compose.yml down
