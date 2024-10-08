@@ -1,49 +1,49 @@
-name: CI/CD for FastAPI and Next.js with Docker Compose
+name: Full CI/CD Workflow
 
 on:
-  push:
-    branches: [ main, dev ]
-  pull_request:
-    branches: [ main, dev ]
+    push:
+      branches: [ main ]
+    pull_request:
+      branches: [ main ]
 
 jobs:
-  build-and-test:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-    - name: Set up Docker Compose
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        service_account_key: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+    - name: Configure Docker for GCP
+      run: gcloud auth configure-docker
+
+    - name: Build and push Docker images
       run: |
-        sudo apt-get update
-        sudo apt-get install docker-compose
+        docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/dokodine-backend:latest ./dokodine-backend
+        docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/dokodine-backend:latest
+        docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/dokodine-frontend:latest ./dokodine-frontend
+        docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/dokodine-frontend:latest
 
-    - name: Build and run Docker Compose
-      run: docker-compose -f docker-compose.yml up --build -d
-
-    - name: Wait for Backend to Start
+    - name: Deploy Backend to Cloud Run
       run: |
-        RETRIES=5
-        until curl --fail http://localhost:8000/ || [ $RETRIES -eq 0 ]; do
-          echo "Waiting for backend to be ready..."
-          sleep 5
-          RETRIES=$((RETRIES - 1))
-        done
+        gcloud run deploy fastapi-backend \
+          --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/dokodine-backend:latest \
+          --platform managed \
+          --region us-central1 \
+          --allow-unauthenticated \
+          --port 8000
 
-    - name: Wait for Frontend to Start
+    - name: Deploy Frontend to Cloud Run
       run: |
-        RETRIES=5
-        until curl --fail http://localhost:3000/ || [ $RETRIES -eq 0 ]; do
-          echo "Waiting for frontend to be ready..."
-          sleep 5
-          RETRIES=$((RETRIES - 1))
-        done
-
-    - name: Test Backend API
-      run: curl http://localhost:8000/
-
-    - name: Test Frontend
-      run: curl http://localhost:3000/
-
-    - name: Shut down Docker Compose
-      run: docker-compose -f docker-compose.yml down
+        gcloud run deploy nextjs-frontend \
+          --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/dokodine-frontend:latest \
+          --platform managed \
+          --region us-central1 \
+          --allow-unauthenticated \
+          --port 3000
