@@ -5,7 +5,7 @@ variable "project_id" {
 
 variable "region" {
   description = "The region to deploy the Cloud Run service"
-  default = "europe-west1"
+  default = "us-central1"
 }
 
 variable "service_name" {
@@ -15,5 +15,5 @@ variable "service_name" {
 
 variable "repository_id" {
   description = "The ID of the Artifact Registry repository"
-  default = "dokodine-backend"
+  default = "dokodine-backend-repo"
 }
