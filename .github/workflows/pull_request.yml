@@ -7,9 +7,51 @@ env:
   TF_CLOUD_ORGANIZATION: "${{ secrets.TF_ORGANIZATION }}"
   TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
   TF_WORKSPACE: "${{ secrets.TF_PROD_WORKSPACE }}"
-  CONFIG_DIRECTORY: "./"
+  CONFIG_DIRECTORY: "./terraform"
 
 jobs:
+  # lint-and-test:
+  #   name: "Lint and Test"
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v4
+  #       with:
+  #         python-version: '3.9'
+  #     - name: Install dependencies
+  #       run: |
+  #         python -m pip install --upgrade pip
+  #         pip install -r requirements.txt
+  #         pip install flake8 pytest
+  #     - name: Run linter
+  #       run: flake8 .
+  #     - name: Run tests
+  #       run: pytest
+
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Build Docker image
+      run: docker build -t :${{ github.sha }} .
+
+    - name: Run Docker container
+      run: |
+        docker run -d -p 8000:8000 --name dokodine-backend-container dokodine-backend:${{ github.sha }}
+
   terraform:
     name: "Terraform Plan"
     runs-on: ubuntu-latest
