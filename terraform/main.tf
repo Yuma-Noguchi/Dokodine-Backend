@@ -6,9 +6,9 @@ terraform {
     }
   }
   backend "remote" {
-    organization = "var.organization"
+    organization = "dokodine"
     workspaces {
-      name = "var.workspace"
+      name = "dokodine-prod"
     }
   }
 }

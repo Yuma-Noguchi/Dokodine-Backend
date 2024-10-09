@@ -1,23 +1,19 @@
 variable "project_id" {
   description = "The ID of the Google Cloud project"
+  default = "dokodine"
 }
 
 variable "region" {
   description = "The region to deploy the Cloud Run service"
+  default = "europe-west1"
 }
 
 variable "service_name" {
   description = "The name of the Cloud Run service"
+  default = "dokodine-backend"
 }
 
 variable "repository_id" {
   description = "The ID of the Artifact Registry repository"
-}
-
-variable "organization" {
-  description = "The ID of the Google Cloud organization"
-}
-
-variable "workspace" {
-  description = "The name of the Terraform Cloud workspace"
+  default = "dokodine-backend"
 }
