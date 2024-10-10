@@ -8,7 +8,7 @@ terraform {
   backend "remote" {
     organization = "dokodine"
     workspaces {
-      name = "dokodine-prod"
+      prefix = "dokodine-"
     }
   }
 }
@@ -57,8 +57,8 @@ resource "google_cloud_run_service_iam_member" "public_access" {
 }
 
 resource "google_service_account" "github_actions" {
-  account_id   = "github-actions"
-  display_name = "Service Account for GitHub Actions"
+  account_id   = "github-actions-${terraform.workspace}"
+  display_name = "Service Account for GitHub Actions (${terraform.workspace})"
 }
 
 resource "google_project_iam_member" "artifact_registry_writer" {
