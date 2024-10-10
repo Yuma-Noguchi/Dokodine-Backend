@@ -2,14 +2,37 @@ name: "Terraform Plan"
 
 on:
   pull_request:
+    branches: [main, dev]
 
 env:
-  TF_CLOUD_ORGANIZATION: "${{ secrets.TF_ORGANIZATION }}"
+  TF_CLOUD_ORGANIZATION: "${{ vars.TF_ORGANIZATION }}"
   TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
-  TF_WORKSPACE: "${{ secrets.TF_PROD_WORKSPACE }}"
   CONFIG_DIRECTORY: "./terraform"
 
 jobs:
+  set-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      env_name: ${{ steps.set-env.outputs.env_name }}
+      tf_workspace: ${{ steps.set-env.outputs.tf_workspace }}
+      service_name: ${{ steps.set-env.outputs.service_name }}
+      gar_repo: ${{ steps.set-env.outputs.repository_id }}
+    steps:
+    - name: Set environment variables based on branch
+      id: set-env
+      run: |
+        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          echo "env_name=prod" >> $GITHUB_OUTPUT
+          echo "tf_workspace=${{ secrets.TF_WORKSPACE_PROD }}" >> $GITHUB_OUTPUT
+          echo "service_name=${{ vars.SERVICE_NAME_PROD }}" >> $GITHUB_OUTPUT
+          echo "gar_repo=${{ vars.GAR_REPO_PROD }}" >> $GITHUB_OUTPUT
+        else
+          echo "env_name=dev" >> $GITHUB_OUTPUT
+          echo "tf_workspace=${{ secrets.TF_WORKSPACE_DEV }}" >> $GITHUB_OUTPUT
+          echo "service_name=${{ vars.SERVICE_NAME_DEV }}" >> $GITHUB_OUTPUT
+          echo "gar_repo=${{ vars.GAR_REPO_DEV }}" >> $GITHUB_OUTPUT
+        fi
+
   # lint-and-test:
   #   name: "Lint and Test"
   #   runs-on: ubuntu-latest
@@ -30,6 +53,8 @@ jobs:
   #       run: pytest
 
   build-and-test:
+    needs: set-environment
+    name: "Build and Test"
     runs-on: ubuntu-latest
 
     steps:
@@ -53,6 +78,7 @@ jobs:
         docker run -d -p 8000:8000 --name dokodine-backend-container dokodine-backend:${{ github.sha }}
 
   terraform:
+    needs: [build-and-test, set-environment]
     name: "Terraform Plan"
     runs-on: ubuntu-latest
     permissions:
@@ -61,12 +87,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
       - name: Upload Configuration
         uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.0.0 #hashicorp/setup-terraform@v2
         id: plan-upload
         with:
-          workspace: ${{ env.TF_WORKSPACE }}
+          workspace: ${{ needs.set-environment.outputs.tf_workspace }}
           directory: ${{ env.CONFIG_DIRECTORY }}
           speculative: true
 
@@ -74,9 +105,13 @@ jobs:
         uses: hashicorp/tfc-workflows-github/actions/create-run@v1.0.0
         id: plan-run
         with:
-          workspace: ${{ env.TF_WORKSPACE }}
+          workspace: ${{ needs.set-environment.outputs.tf_workspace }}
           configuration_version: ${{ steps.plan-upload.outputs.configuration_version_id }}
           plan_only: true
+        env:
+          TF_VAR_service_name: ${{ needs.set-environment.outputs.service_name }}
+          TF_VAR_gar_repo: ${{ needs.set-environment.outputs.gar_repo }}
+
 
       - name: Get Plan Output
         uses: hashicorp/tfc-workflows-github/actions/plan-output@v1.0.0
