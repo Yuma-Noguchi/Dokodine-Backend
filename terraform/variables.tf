@@ -15,7 +15,7 @@ variable "service_name" {
   type = string
 }
 
-variable "repository_id" {
+variable "gar_repo" {
   description = "The ID of the Artifact Registry repository"
   type = string
 }

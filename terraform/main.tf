@@ -20,7 +20,7 @@ provider "google" {
 
 resource "google_artifact_registry_repository" "dokodine-backend-repo" {
   location      = var.region
-  repository_id = var.repository_id
+  repository_id = var.gar_repo
   description   = "Docker repository for FastAPI app"
   format        = "DOCKER"
 }
