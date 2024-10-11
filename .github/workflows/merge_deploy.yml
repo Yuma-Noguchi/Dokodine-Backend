@@ -1,8 +1,9 @@
-name: CI/CD Pipeline
-
 on:
-  push:
-    branches: [ main, dev ]
+  workflow_call:
+    inputs:
+      environment_name:
+        required: true
+        type: string
 
 env:
   TF_CLOUD_ORGANIZATION: "${{ vars.TF_ORGANIZATION }}"
@@ -12,55 +13,35 @@ env:
   PROJECT_ID: ${{ secrets.PROJECT_ID }}
 
 jobs:
-  set-environment:
-    runs-on: ubuntu-latest
-    outputs:
-      env_name: ${{ steps.set-env.outputs.env_name }}
-      gar_repo: ${{ steps.set-env.outputs.gar_repo }}
-      service_name: ${{ steps.set-env.outputs.service_name }}
-      tf_workspace: ${{ steps.set-env.outputs.tf_workspace }}
-    steps:
-    - name: Set environment variables based on branch
-      id: set-env
-      run: |
-        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-          echo "env_name=prod" >> $GITHUB_OUTPUT
-          echo "gar_repo=${{ vars.GAR_REPO_PROD }}" >> $GITHUB_OUTPUT
-          echo "service_name=${{ vars.SERVICE_NAME_PROD }}" >> $GITHUB_OUTPUT
-          echo "tf_workspace=${{ secrets.TF_PROD_WORKSPACE }}" >> $GITHUB_OUTPUT
-        else
-          echo "env_name=dev" >> $GITHUB_OUTPUT
-          echo "gar_repo=${{ vars.GAR_REPO_DEV }}" >> $GITHUB_OUTPUT
-          echo "service_name=${{ vars.SERVICE_NAME_DEV }}" >> $GITHUB_OUTPUT
-          echo "tf_workspace=${{ secrets.TF_DEV_WORKSPACE }}" >> $GITHUB_OUTPUT
-        fi
-
   terraform:
-    needs: set-environment
     name: "Terraform Apply"
     runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment_name }}
+    env:
+      TF_WORKSPACE: ${{ secrets.TF_WORKSPACE }}
+      TF_CLOUD_ORGANIZATION: "${{ vars.TF_ORGANIZATION }}"
+      TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
+      CONFIG_DIRECTORY: "./terraform"
     permissions:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Upload Configuration
         uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.0.0
         id: apply-upload
         with:
-          workspace: ${{ needs.set-environment.outputs.tf_workspace }}
+          workspace: ${{ env.TF_WORKSPACE }}
           directory: ${{ env.CONFIG_DIRECTORY }}
 
       - name: Create Apply Run
         uses: hashicorp/tfc-workflows-github/actions/create-run@v1.0.0
         id: apply-run
         with:
-          workspace: ${{ needs.set-environment.outputs.tf_workspace }}
+          workspace: ${{ env.TF_WORKSPACE }}
           configuration_version: ${{ steps.apply-upload.outputs.configuration_version_id }}
-        env:
-          TF_VAR_service_name: ${{ needs.set-environment.outputs.service_name }}
-          TF_VAR_gar_repo: ${{ needs.set-environment.outputs.gar_repo }}
 
       - name: Apply
         uses: hashicorp/tfc-workflows-github/actions/apply-run@v1.0.0
@@ -72,26 +53,35 @@ jobs:
   
   build-and-deploy:
     runs-on: ubuntu-latest
-    needs: [set-environment, terraform]
-
+    needs: [terraform]
+    environment:
+      name: ${{ inputs.environment_name }}
+    env:
+      GAR_LOCATION: ${{ vars.GAR_LOCATION }}
+      PROJECT_ID: ${{ secrets.PROJECT_ID }}
+      SERVICE_NAME: ${{ vars.SERVICE_NAME }}
+    
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up Cloud SDK
-      uses: google-github-actions/setup-gcloud@v0.2.0
+    - name: 'auth'
+      uses: 'google-github-actions/auth@v2'
       with:
-        project_id: ${{ needs.set-environment.outputs.project_id }}
-        service_account_key: ${{ secrets.GCP_SA_KEY }}
-        export_default_credentials: true
+        credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ env.PROJECT_ID }}
 
     - name: Authorize Docker push
       run: gcloud auth configure-docker $GAR_LOCATION-docker.pkg.dev
 
     - name: Build and push Docker image
       env:
-        PROJECT_ID: ${{ needs.set-environment.outputs.project_id }}
-        GAR_REPO: ${{ needs.set-environment.outputs.gar_repo }}
-        SERVICE_NAME: ${{ needs.set-environment.outputs.service_name }}
+        PROJECT_ID: ${{ env.PROJECT_ID }}
+        GAR_REPO: ${{ env.GAR_LOCATION }}
+        SERVICE_NAME: ${{ env.SERVICE_NAME }}
       run: |
         docker build -t $GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$SERVICE_NAME:${{ github.sha }} .
         docker push $GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$SERVICE_NAME:${{ github.sha }}
