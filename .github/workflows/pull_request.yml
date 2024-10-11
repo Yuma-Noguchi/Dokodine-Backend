@@ -60,6 +60,10 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.environment_name }}
+    env:
+      TF_WORKSPACE: ${{ secrets.TF_DEV_WORKSPACE }}
+      GAR_REPO: ${{ vars.GAR_REPO }}
+      SERVICE_NAME: ${{ vars.SERVICE_NAME }}
     permissions:
       contents: read
       pull-requests: write
@@ -71,7 +75,7 @@ jobs:
         uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.0.0 #hashicorp/setup-terraform@v2
         id: plan-upload
         with:
-          workspace: ${{ secrets.TF_WORKSPACE }}
+          workspace: ${{ env.TF_WORKSPACE }}
           directory: ${{ env.CONFIG_DIRECTORY }}
           speculative: true
 
@@ -79,12 +83,12 @@ jobs:
         uses: hashicorp/tfc-workflows-github/actions/create-run@v1.0.0
         id: plan-run
         with:
-          workspace: ${{ secrets.TF_WORKSPACE }}
+          workspace: ${{ env.TF_WORKSPACE }}
           configuration_version: ${{ steps.plan-upload.outputs.configuration_version_id }}
           plan_only: true
         env:
-          TF_VAR_service_name: ${{ secrets.SERVICE_NAME }}
-          TF_VAR_gar_repo: ${{ var.GAR_REPO }}
+          TF_VAR_service_name: ${{ env.SERVICE_NAME }}
+          TF_VAR_gar_repo: ${{ env.GAR_REPO }}
 
 
       - name: Get Plan Output
