@@ -71,7 +71,7 @@ jobs:
         uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.0.0 #hashicorp/setup-terraform@v2
         id: plan-upload
         with:
-          workspace: ${{ env.TF_WORKSPACE }}
+          workspace: ${{ secrets.TF_WORKSPACE }}
           directory: ${{ env.CONFIG_DIRECTORY }}
           speculative: true
 
@@ -79,12 +79,12 @@ jobs:
         uses: hashicorp/tfc-workflows-github/actions/create-run@v1.0.0
         id: plan-run
         with:
-          workspace: ${{ env.TF_WORKSPACE }}
+          workspace: ${{ secrets.TF_WORKSPACE }}
           configuration_version: ${{ steps.plan-upload.outputs.configuration_version_id }}
           plan_only: true
         env:
-          TF_VAR_service_name: ${{ env.SERVICE_NAME }}
-          TF_VAR_gar_repo: ${{ env.GAR_REPO }}
+          TF_VAR_service_name: ${{ secrets.SERVICE_NAME }}
+          TF_VAR_gar_repo: ${{ var.GAR_REPO }}
 
 
       - name: Get Plan Output
