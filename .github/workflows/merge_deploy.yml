@@ -1,23 +1,26 @@
-name: CI/CD Pipeline
-
 on:
-  push:
-    branches: [ main ]
-
-env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  GAR_LOCATION: europe-west1
-  SERVICE_NAME: ${{ secrets.GAR_REPO }}
+  workflow_call:
+    inputs:
+      environment_name:
+        required: true
+        type: string
 
 jobs:
   terraform:
     name: "Terraform Apply"
     runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment_name }}
+    env:
+      TF_WORKSPACE: ${{ secrets.TF_WORKSPACE }}
+      TF_CLOUD_ORGANIZATION: "${{ vars.TF_ORGANIZATION }}"
+      TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
+      CONFIG_DIRECTORY: "./terraform"
     permissions:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Upload Configuration
         uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.0.0
@@ -43,24 +46,35 @@ jobs:
   
   build-and-deploy:
     runs-on: ubuntu-latest
-    needs: terraform
-
+    needs: [terraform]
+    environment:
+      name: ${{ inputs.environment_name }}
+    env:
+      GAR_LOCATION: ${{ vars.GAR_LOCATION }}
+      PROJECT_ID: ${{ secrets.PROJECT_ID }}
+      SERVICE_NAME: ${{ vars.SERVICE_NAME }}
+    
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up Cloud SDK
-      uses: google-github-actions/setup-gcloud@v0.2.0
+    - name: 'auth'
+      uses: 'google-github-actions/auth@v2'
       with:
-        project_id: ${{ secrets.GCP_PROJECT_ID }}
-        service_account_key: ${{ secrets.GCP_SA_KEY }}
-        export_default_credentials: true
+        credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ env.PROJECT_ID }}
 
     - name: Authorize Docker push
       run: gcloud auth configure-docker $GAR_LOCATION-docker.pkg.dev
 
     - name: Build and push Docker image
       env:
-        GAR_REPO: ${{ secrets.GAR_REPO }}
+        PROJECT_ID: ${{ env.PROJECT_ID }}
+        GAR_REPO: ${{ env.GAR_LOCATION }}
+        SERVICE_NAME: ${{ env.SERVICE_NAME }}
       run: |
         docker build -t $GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$SERVICE_NAME:${{ github.sha }} .
         docker push $GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$SERVICE_NAME:${{ github.sha }}
