@@ -53,6 +53,7 @@ jobs:
       GAR_LOCATION: ${{ vars.GAR_LOCATION }}
       PROJECT_ID: ${{ secrets.PROJECT_ID }}
       SERVICE_NAME: ${{ vars.SERVICE_NAME }}
+      GAR_REPO: ${{ vars.GAR_REPO }}
     
     steps:
     - uses: actions/checkout@v4
@@ -71,10 +72,6 @@ jobs:
       run: gcloud auth configure-docker $GAR_LOCATION-docker.pkg.dev
 
     - name: Build and push Docker image
-      env:
-        PROJECT_ID: ${{ env.PROJECT_ID }}
-        GAR_REPO: ${{ env.GAR_LOCATION }}
-        SERVICE_NAME: ${{ env.SERVICE_NAME }}
       run: |
         docker build -t $GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$SERVICE_NAME:${{ github.sha }} .
         docker push $GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$SERVICE_NAME:${{ github.sha }}
