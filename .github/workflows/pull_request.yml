@@ -33,6 +33,8 @@ jobs:
   build-and-test:
     name: "Build and Test"
     runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment_name }}
 
     steps:
     - uses: actions/checkout@v4
