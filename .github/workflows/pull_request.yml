@@ -5,11 +5,6 @@ on:
         required: true
         type: string
 
-env:
-  TF_CLOUD_ORGANIZATION: "${{ vars.TF_ORGANIZATION }}"
-  TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
-  CONFIG_DIRECTORY: "./terraform"
-
 jobs:
   # lint-and-test:
   #   name: "Lint and Test"
@@ -61,9 +56,12 @@ jobs:
     environment:
       name: ${{ inputs.environment_name }}
     env:
-      TF_WORKSPACE: ${{ secrets.TF_DEV_WORKSPACE }}
+      TF_WORKSPACE: ${{ vars.TF_WORKSPACE }}
       GAR_REPO: ${{ vars.GAR_REPO }}
       SERVICE_NAME: ${{ vars.SERVICE_NAME }}
+      TF_CLOUD_ORGANIZATION: "${{ vars.TF_ORGANIZATION }}"
+      TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
+      CONFIG_DIRECTORY: "./terraform"
     permissions:
       contents: read
       pull-requests: write
