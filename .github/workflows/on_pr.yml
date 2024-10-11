@@ -9,6 +9,9 @@ jobs:
     name: "on_PR Dev"
     if: ${{ github.base_ref  == 'dev' }}
     uses: ./.github/workflows/pull_request.yml
+    permissions:
+      contents: read
+      pull-requests: write
     secrets: inherit
     with:
         environment_name: dev
@@ -17,6 +20,9 @@ jobs:
     name: "on_PR Prod"
     if: ${{ github.base_ref == 'main' }}
     uses: ./.github/workflows/pull_request.yml
+    permissions:
+      contents: read
+      pull-requests: write
     secrets: inherit
     with:
         environment_name: prod
