@@ -91,6 +91,9 @@ jobs:
       - name: Upload Configuration
         uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.0.0 #hashicorp/setup-terraform@v2
         id: plan-upload
+        env:
+          TF_WORKSPACE: ${{ needs.set-environment.outputs.tf_workspace }}
+          
         with:
           workspace: ${{ needs.set-environment.outputs.tf_workspace }}
           directory: ${{ env.CONFIG_DIRECTORY }}
