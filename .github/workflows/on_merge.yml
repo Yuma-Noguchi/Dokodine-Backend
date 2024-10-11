@@ -7,7 +7,7 @@ on:
 jobs:
     develop:
         name: "on_merge Dev"
-        if: ${{ github.base_ref == 'dev' }}
+        if: ${{ github.ref == 'dev' }}
         uses: ./.github/workflows/merge_deploy.yml
         permissions:
             contents: read
@@ -17,7 +17,7 @@ jobs:
     
     prod:
         name: "on_merge Prod"
-        if: ${{ github.base_ref == 'main' }}
+        if: ${{ github.ref == 'main' }}
         uses: ./.github/workflows/merge_deploy.yml
         permissions:
             contents: read
