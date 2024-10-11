@@ -1,13 +1,9 @@
-name: "Terraform Plan"
-
 on:
-  pull_request:
-
-env:
-  TF_CLOUD_ORGANIZATION: "${{ secrets.TF_ORGANIZATION }}"
-  TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
-  TF_WORKSPACE: "${{ secrets.TF_PROD_WORKSPACE }}"
-  CONFIG_DIRECTORY: "./terraform"
+  workflow_call:
+    inputs:
+      environment_name:
+        required: true
+        type: string
 
 jobs:
   # lint-and-test:
@@ -30,13 +26,14 @@ jobs:
   #       run: pytest
 
   build-and-test:
+    name: "Build and Test"
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.12'
 
@@ -53,8 +50,16 @@ jobs:
         docker run -d -p 8000:8000 --name dokodine-backend-container dokodine-backend:${{ github.sha }}
 
   terraform:
+    needs: [build-and-test]
     name: "Terraform Plan"
     runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment_name }}
+    env:
+      TF_WORKSPACE: ${{ secrets.TF_WORKSPACE }}
+      TF_CLOUD_ORGANIZATION: "${{ vars.TF_ORGANIZATION }}"
+      TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
+      CONFIG_DIRECTORY: "./terraform"
     permissions:
       contents: read
       pull-requests: write
