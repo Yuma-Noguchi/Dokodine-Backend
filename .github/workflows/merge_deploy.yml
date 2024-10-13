@@ -82,4 +82,5 @@ jobs:
           --image $GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$SERVICE_NAME:${{ github.sha }} \
           --region $GAR_LOCATION \
           --platform managed \
-          --allow-unauthenticated
+          --allow-unauthenticated \
+          --set-env-vars "SUPABASE_URL=${{ secrets.SUPABASE_URL }},SUPABASE_KEY=${{ secrets.SUPABASE_KEY }},SUPERUSER_EMAIL=${{ secrets.SUPERUSER_EMAIL }},SUPERUSER_PASSWORD=${{ secrets.SUPERUSER_PASSWORD}}"
