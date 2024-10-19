@@ -8,7 +8,7 @@ terraform {
   backend "remote" {
     organization = "dokodine"
     workspaces {
-      prefix = "dokodine-"
+      prefix = "backend-"
     }
   }
 }
