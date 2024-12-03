@@ -2,7 +2,7 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "4.51.0"
+      version = "~> 4.0"
     }
   }
   backend "remote" {
@@ -25,21 +25,17 @@ resource "google_artifact_registry_repository" "dokodine-backend-repo" {
   format        = "DOCKER"
 }
 
-resource "google_cloud_run_service" "dokodine-backend" {
+resource "google_cloud_run_v2_service" "dokodine-backend" {
   name     = var.service_name
   location = var.region
 
   template {
-    spec {
-      containers {
+    containers {
         image = "gcr.io/cloudrun/hello" # Placeholder image
       }
     }
-  }
-
   traffic {
     percent         = 100
-    latest_revision = true
   }
 
   lifecycle {
@@ -47,6 +43,13 @@ resource "google_cloud_run_service" "dokodine-backend" {
       template[0].spec[0].containers[0].image,
     ]
   }
+
+  ingress = "INGRESS_TRAFFIC_INTERNAL_ONLY" # Only allow internal requests
+
+   traffic {
+      type    = "TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST"
+      percent = 100
+   }
 }
 
 resource "google_cloud_run_service_iam_member" "public_access" {
