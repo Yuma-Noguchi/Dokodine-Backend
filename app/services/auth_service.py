@@ -24,7 +24,7 @@ class AuthService:
                 "password": user.password
             })
             if response.user:
-                return {"message": "Signup successful", "user": response.user}
+                return {"message": "Signup successful", "user": response.user, "access_token": response.session.access_token, "token_type": "bearer"}
             else:
                 raise HTTPException(status_code=400, detail="Signup failed")
         except Exception as e:
@@ -40,7 +40,7 @@ class AuthService:
             if response.session:
                 return {"access_token": response.session.access_token, "token_type": "bearer"}
             else:
-                raise HTTPException(status_code=401, detail="Invalid credentials")
+                raise HTTPException(status_code=401, detail="Invalid credentials" + str(response.error))
         except Exception as e:
             logging.error(f"Login error: {str(e)}")
             raise HTTPException(status_code=401, detail="Invalid credentials")
