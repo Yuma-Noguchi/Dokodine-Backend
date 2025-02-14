@@ -28,18 +28,18 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         _, got = data
         return [self.model(**item) for item in got]
 
-    async def get_multi_by_owner(
-        self, db: AsyncClient, *, user: UserIn
-    ) -> list[ModelType]:
-        """get by owner,use it  if rls failed to use"""
-        data, count = (
-            await db.table(self.model.table_name)
-            .select("*")
-            .eq("user_id", user.id)
-            .execute()
-        )
-        _, got = data
-        return [self.model(**item) for item in got]
+    # async def get_multi_by_owner(
+    #     self, db: AsyncClient, *, user: UserIn
+    # ) -> list[ModelType]:
+    #     """get by owner,use it  if rls failed to use"""
+    #     data, count = (
+    #         await db.table(self.model.table_name)
+    #         .select("*")
+    #         .eq("user_id", user.id)
+    #         .execute()
+    #     )
+    #     _, got = data
+    #     return [self.model(**item) for item in got]
 
     async def create(self, db: AsyncClient, *, obj_in: CreateSchemaType) -> ModelType:
         """create by CreateSchemaType"""

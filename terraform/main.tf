@@ -38,12 +38,6 @@ resource "google_cloud_run_v2_service" "dokodine-backend" {
     percent         = 100
   }
 
-  lifecycle {
-    ignore_changes = [
-      template[0].spec[0].containers[0].image,
-    ]
-  }
-
   ingress = "INGRESS_TRAFFIC_INTERNAL_ONLY" # Only allow internal requests
 
    traffic {
@@ -53,8 +47,8 @@ resource "google_cloud_run_v2_service" "dokodine-backend" {
 }
 
 resource "google_cloud_run_service_iam_member" "public_access" {
-  service  = google_cloud_run_service.dokodine-backend.name
-  location = google_cloud_run_service.dokodine-backend.location
+  service  = google_cloud_run_v2_service.dokodine-backend.name
+  location = google_cloud_run_v2_service.dokodine-backend.location
   role     = "roles/run.invoker"
   member   = "allUsers"
 }
